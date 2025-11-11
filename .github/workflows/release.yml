@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,6 +12,8 @@ jobs:
   build:
     name: Build Release Artifacts
     runs-on: ubuntu-latest
+    # Only run on tag pushes
+    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout code
@@ -27,7 +28,14 @@ jobs:
 
       - name: Extract version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [[ "$GITHUB_REF" =~ ^refs/tags/v(.*)$ ]]; then
+            echo "VERSION=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+            echo "✅ Building version: ${BASH_REMATCH[1]}"
+          else
+            echo "❌ Not a valid version tag: $GITHUB_REF"
+            exit 1
+          fi
 
       - name: Build with Maven
         run: mvn clean package -DskipTests
