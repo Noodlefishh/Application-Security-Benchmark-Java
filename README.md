@@ -406,3 +406,416 @@ Pour toute question ou problème, veuillez créer une issue dans le dépôt du p
 ---
 
 **Rappel:** Cette application est dangereuse par conception. Ne l'utilisez que dans un environnement isolé et contrôlé.
+
+***************************************************************************************
+***************************************************************************************
+***************************************************************************************
+
+# Vulnerable Web Application - Application Security Testing
+
+## ⚠️ CRITICAL WARNING ⚠️
+
+**This application intentionally contains serious security vulnerabilities.**
+
+- ❌ **NEVER DEPLOY TO PRODUCTION**
+- ❌ **NEVER EXPOSE TO THE INTERNET**
+- ✅ **Use ONLY in an isolated test environment**
+- ✅ **Designed to test application security tools (SAST, DAST, IAST, SCA)**
+
+## Description
+
+Intentionally vulnerable Java Spring MVC application that implements the top 10 vulnerabilities from [OWASP Top 10 (2021)](https://owasp.org/Top10/).
+
+## Implemented Vulnerabilities
+
+### A01:2021 - Broken Access Control
+- ✅ Unauthorized access to user profiles
+- ✅ No permission verification
+- ✅ Sensitive data exposure
+
+**Endpoints:**
+- `GET /user/profile/{userId}` - View any profile without authorization
+
+### A02:2021 - Cryptographic Failures
+- ✅ Passwords stored in plain text
+- ✅ Unencrypted sensitive data (SSN, credit cards)
+- ✅ No password hashing
+
+**Endpoints:**
+- `GET /user/admin/export` - Export all sensitive data in plain text
+
+### A03:2021 - Injection
+- ✅ SQL Injection via user parameters
+- ✅ SQL Injection via ORDER BY
+- ✅ Command Injection
+- ✅ Cross-Site Scripting (XSS)
+
+**Endpoints:**
+- `GET /user/search?username=` - SQL Injection
+- `GET /user/list?sortBy=` - SQL Injection via ORDER BY
+- `GET /user/comment?username=&comment=` - Reflected XSS
+- `GET /file/convert?filename=` - Command Injection
+
+**Exploitation examples:**
+```bash
+# SQL Injection
+curl "http://localhost:8080/vulnerable-app/user/search?username=' OR '1'='1"
+
+# XSS
+curl "http://localhost:8080/vulnerable-app/user/comment?username=test&comment=<script>alert('XSS')</script>"
+```
+
+### A04:2021 - Insecure Design
+- ✅ XML External Entity (XXE) Injection
+- ✅ Insecure XML parser
+
+**Endpoints:**
+- `POST /xml/parse` - XXE Injection
+
+**Exploitation example:**
+```bash
+curl -X POST http://localhost:8080/vulnerable-app/xml/parse \
+  -H "Content-Type: application/xml" \
+  -d '<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><root>&xxe;</root>'
+```
+
+### A05:2021 - Security Misconfiguration
+- ✅ Cookies without HttpOnly and Secure flags
+- ✅ No security headers (CSP, HSTS, X-Frame-Options)
+- ✅ Detailed error messages
+- ✅ Insecure session configuration
+- ✅ File upload without size limit
+
+### A06:2021 - Vulnerable and Outdated Components
+- ✅ Log4j 2.14.1 (CVE-2021-44228 - Log4Shell)
+- ✅ Spring Framework 5.2.0 (vulnerable versions)
+- ✅ Jackson 2.9.8 (CVE-2019-12384)
+- ✅ Commons FileUpload 1.3.1 (CVE-2016-1000031)
+
+### A07:2021 - Identification and Authentication Failures
+- ✅ Passwords stored in plain text
+- ✅ No login attempt limit
+- ✅ Informative error messages revealing user existence
+- ✅ JWT with weak hard-coded secret key
+- ✅ Password reset without verification
+- ✅ Session fixation
+
+**Endpoints:**
+- `POST /auth/login` - Weak authentication
+- `POST /auth/register` - Registration without validation
+- `POST /auth/reset-password` - Insecure reset
+
+**Examples:**
+```bash
+# Login
+curl -X POST "http://localhost:8080/vulnerable-app/auth/login?username=admin&password=admin123"
+
+# Register
+curl -X POST "http://localhost:8080/vulnerable-app/auth/register?username=newuser&password=123&email=user@test.com"
+```
+
+### A08:2021 - Software and Data Integrity Failures
+- ✅ Insecure Java deserialization
+- ✅ Accepts arbitrary serialized objects
+- ✅ Remote Code Execution (RCE) risk
+
+**Endpoints:**
+- `POST /deserialize/object` - Insecure Deserialization
+- `GET /deserialize/serialize-example?message=` - Helper to create serialized objects
+
+### A09:2021 - Security Logging and Monitoring Failures
+- ✅ Insufficient logging of security events
+- ✅ No monitoring of login attempts
+- ✅ No security alerts
+- ✅ Inadequate logs for auditing
+
+### A10:2021 - Server-Side Request Forgery (Bonus)
+Additional vulnerabilities:
+- ✅ Path Traversal / Directory Traversal
+- ✅ Unrestricted File Upload
+- ✅ Arbitrary File Read
+
+**Endpoints:**
+- `GET /file/download?filename=` - Path Traversal
+- `POST /file/upload` - Unrestricted upload
+- `GET /file/read?path=` - Arbitrary file read
+
+**Examples:**
+```bash
+# Path Traversal
+curl "http://localhost:8080/vulnerable-app/file/download?filename=../../etc/passwd"
+
+# File Read
+curl "http://localhost:8080/vulnerable-app/file/read?path=/etc/passwd"
+```
+
+## Prerequisites
+
+- Java 11 or higher
+- Maven 3.6+
+- Docker and Docker Compose (for containerized deployment)
+
+## Installation and Deployment
+
+### Option 1: Docker Deployment (Recommended)
+
+```bash
+# 1. Compile the application
+mvn clean package
+
+# 2. Build and start the container
+docker-compose up -d
+
+# 3. The application will be accessible at http://localhost:8080/vulnerable-app
+```
+
+### Option 2: Manual Deployment with Maven
+
+```bash
+# 1. Compile the application
+mvn clean package
+
+# 2. Deploy the WAR to Tomcat
+cp target/vulnerable-app.war /path/to/tomcat/webapps/
+
+# 3. Start Tomcat
+/path/to/tomcat/bin/catalina.sh run
+```
+
+### Option 3: Docker Build Only
+
+```bash
+# Compile
+mvn clean package
+
+# Build the image
+docker build -t vulnerable-web-app:latest .
+
+# Run the container
+docker run -d -p 8080:8080 --name vulnerable-app vulnerable-web-app:latest
+```
+
+## Application Access
+
+- **URL:** http://localhost:8080/vulnerable-app
+- **Documentation:** http://localhost:8080/vulnerable-app/index.html
+
+## Test Accounts
+
+| Username | Password  | Role      |
+|----------|-----------|-----------|
+| admin    | admin123  | admin     |
+| john     | password  | user      |
+| alice    | alice2023 | user      |
+| bob      | 12345     | user      |
+| charlie  | qwerty    | moderator |
+
+## Cloud Platform Deployment
+
+### AWS (Elastic Container Service)
+
+```bash
+# 1. Compile and create image
+mvn clean package
+docker build -t vulnerable-web-app:latest .
+
+# 2. Tag for ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com
+docker tag vulnerable-web-app:latest YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/vulnerable-web-app:latest
+
+# 3. Push to ECR
+docker push YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/vulnerable-web-app:latest
+
+# 4. Create an ECS task with this image
+```
+
+### Azure (Container Instances)
+
+```bash
+# 1. Compile and create image
+mvn clean package
+docker build -t vulnerable-web-app:latest .
+
+# 2. Login to Azure Container Registry
+az acr login --name yourregistry
+
+# 3. Tag and push
+docker tag vulnerable-web-app:latest yourregistry.azurecr.io/vulnerable-web-app:latest
+docker push yourregistry.azurecr.io/vulnerable-web-app:latest
+
+# 4. Deploy to ACI
+az container create \
+  --resource-group myResourceGroup \
+  --name vulnerable-app \
+  --image yourregistry.azurecr.io/vulnerable-web-app:latest \
+  --dns-name-label vulnerable-app-test \
+  --ports 8080
+```
+
+### Google Cloud (Cloud Run)
+
+```bash
+# 1. Compile
+mvn clean package
+
+# 2. Build and push to GCR
+gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/vulnerable-web-app
+
+# 3. Deploy to Cloud Run
+gcloud run deploy vulnerable-web-app \
+  --image gcr.io/YOUR_PROJECT_ID/vulnerable-web-app \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8080
+```
+
+## Security Testing
+
+### Static Analysis (SAST)
+
+```bash
+# SonarQube
+mvn sonar:sonar -Dsonar.host.url=http://localhost:9000
+
+# SpotBugs
+mvn spotbugs:spotbugs
+
+# OWASP Dependency-Check
+mvn dependency-check:check
+```
+
+### Dynamic Analysis (DAST)
+
+```bash
+# OWASP ZAP
+zap-cli quick-scan http://localhost:8080/vulnerable-app
+
+# Nikto
+nikto -h http://localhost:8080/vulnerable-app
+```
+
+### Software Composition Analysis (SCA)
+
+```bash
+# OWASP Dependency-Check
+mvn org.owasp:dependency-check-maven:check
+
+# Snyk
+snyk test
+```
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── main/
+│   │   ├── java/com/vulnerable/app/
+│   │   │   ├── config/          # Spring configuration
+│   │   │   ├── controller/      # Controllers with vulnerabilities
+│   │   │   ├── model/           # Data models
+│   │   │   └── service/         # Business services
+│   │   ├── resources/
+│   │   │   ├── schema.sql       # Database schema
+│   │   │   └── data.sql         # Test data
+│   │   └── webapp/
+│   │       ├── WEB-INF/
+│   │       │   └── web.xml      # Web configuration
+│   │       └── index.html       # Home page
+├── Dockerfile                    # Docker image
+├── docker-compose.yml           # Docker orchestration
+├── pom.xml                      # Maven configuration
+└── README.md                    # This file
+```
+
+## Recommended Testing Tools
+
+### SAST (Static Application Security Testing)
+- SonarQube
+- Checkmarx
+- Fortify
+- Semgrep
+- SpotBugs
+
+### DAST (Dynamic Application Security Testing)
+- OWASP ZAP
+- Burp Suite
+- Acunetix
+- Nikto
+- sqlmap
+
+### IAST (Interactive Application Security Testing)
+- Contrast Security
+- Seeker
+- Hdiv Detection
+
+### SCA (Software Composition Analysis)
+- OWASP Dependency-Check
+- Snyk
+- WhiteSource
+- Black Duck
+
+## Testing Examples
+
+### SQL Injection Test
+
+```bash
+# Basic test
+curl "http://localhost:8080/vulnerable-app/user/search?username=' OR '1'='1"
+
+# Data extraction
+curl "http://localhost:8080/vulnerable-app/user/search?username=' UNION SELECT id,username,password,email,role,ssn,credit_card FROM users--"
+```
+
+### XSS Test
+
+```bash
+curl "http://localhost:8080/vulnerable-app/user/comment?username=test&comment=<script>alert(document.cookie)</script>"
+```
+
+### XXE Test
+
+```bash
+curl -X POST http://localhost:8080/vulnerable-app/xml/parse \
+  -H "Content-Type: application/xml" \
+  -d '<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><root>&xxe;</root>'
+```
+
+### Path Traversal Test
+
+```bash
+curl "http://localhost:8080/vulnerable-app/file/download?filename=../../../../etc/passwd"
+```
+
+## Cleanup
+
+```bash
+# Stop and remove containers
+docker-compose down
+
+# Remove volumes
+docker-compose down -v
+
+# Remove image
+docker rmi vulnerable-web-app:latest
+```
+
+## Resources
+
+- [OWASP Top 10 2021](https://owasp.org/Top10/)
+- [OWASP Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
+- [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/)
+- [CWE Top 25](https://cwe.mitre.org/top25/)
+
+## License
+
+This application is provided "as is" for educational and testing purposes only. The author disclaims any responsibility for improper use.
+
+## Support
+
+For any questions or issues, please create an issue in the project repository.
+
+---
+
+**Reminder:** This application is dangerous by design. Only use it in an isolated and controlled environment.
