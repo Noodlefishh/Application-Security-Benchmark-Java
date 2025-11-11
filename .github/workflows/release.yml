@@ -1,0 +1,203 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Verify WAR file
+        run: |
+          if [ -f "target/vulnerable-app.war" ]; then
+            echo "✅ WAR file created successfully"
+            ls -lh target/vulnerable-app.war
+          else
+            echo "❌ WAR file not found"
+            exit 1
+          fi
+
+      - name: Create release directory
+        run: mkdir -p release
+
+      - name: Rename WAR with version
+        run: cp target/vulnerable-app.war release/vulnerable-app-${{ steps.version.outputs.VERSION }}.war
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: vulnerable-web-app:${{ steps.version.outputs.VERSION }}
+          outputs: type=docker,dest=/tmp/vulnerable-web-app.tar
+
+      - name: Copy Docker image to release
+        run: cp /tmp/vulnerable-web-app.tar release/vulnerable-web-app-${{ steps.version.outputs.VERSION }}-docker.tar
+
+      - name: Generate checksums
+        working-directory: release
+        run: |
+          sha256sum vulnerable-app-${{ steps.version.outputs.VERSION }}.war > checksums.txt
+          sha256sum vulnerable-web-app-${{ steps.version.outputs.VERSION }}-docker.tar >> checksums.txt
+          cat checksums.txt
+
+      - name: Create release notes
+        id: release_notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          # 🇫🇷 Version Française
+
+          ## Release v${{ steps.version.outputs.VERSION }}
+
+          ### 📋 Résumé
+
+          Application Web Vulnérable pour les tests de sécurité applicative. Cette application implémente intentionnellement les 10 vulnérabilités critiques du OWASP Top 10 (2021).
+
+          ### ✨ Fonctionnalités
+
+          **Vulnérabilités OWASP Top 10 Implémentées :**
+          - ✅ A01:2021 - Broken Access Control
+          - ✅ A02:2021 - Cryptographic Failures
+          - ✅ A03:2021 - Injection (SQL, XSS, Command)
+          - ✅ A04:2021 - Insecure Design (XXE)
+          - ✅ A05:2021 - Security Misconfiguration
+          - ✅ A06:2021 - Vulnerable Components (Log4Shell)
+          - ✅ A07:2021 - Authentication Failures
+          - ✅ A08:2021 - Data Integrity Failures
+          - ✅ A09:2021 - Logging Failures
+          - ✅ Bonus - Path Traversal, File Upload, Command Injection
+
+          ### 📦 Installation
+
+          ```bash
+          # Option 1: WAR file
+          cp vulnerable-app-${{ steps.version.outputs.VERSION }}.war /path/to/tomcat/webapps/
+
+          # Option 2: Docker
+          docker load -i vulnerable-web-app-${{ steps.version.outputs.VERSION }}-docker.tar
+          docker run -d -p 8080:8080 vulnerable-web-app:${{ steps.version.outputs.VERSION }}
+          ```
+
+          ### ⚠️ Avertissement
+
+          **NE JAMAIS déployer en production ou exposer sur Internet !**
+
+          ### 📚 Documentation
+
+          - [README.md](README.md)
+          - [VULNERABILITIES-SUMMARY.md](VULNERABILITIES-SUMMARY.md)
+          - [RELEASE-INSTRUCTIONS.md](RELEASE-INSTRUCTIONS.md)
+
+          ---
+
+          # 🇬🇧 English Version
+
+          ## Release v${{ steps.version.outputs.VERSION }}
+
+          ### 📋 Summary
+
+          Vulnerable Web Application for application security testing. This application intentionally implements the 10 critical vulnerabilities from OWASP Top 10 (2021).
+
+          ### ✨ Features
+
+          **OWASP Top 10 Vulnerabilities Implemented:**
+          - ✅ A01:2021 - Broken Access Control
+          - ✅ A02:2021 - Cryptographic Failures
+          - ✅ A03:2021 - Injection (SQL, XSS, Command)
+          - ✅ A04:2021 - Insecure Design (XXE)
+          - ✅ A05:2021 - Security Misconfiguration
+          - ✅ A06:2021 - Vulnerable Components (Log4Shell)
+          - ✅ A07:2021 - Authentication Failures
+          - ✅ A08:2021 - Data Integrity Failures
+          - ✅ A09:2021 - Logging Failures
+          - ✅ Bonus - Path Traversal, File Upload, Command Injection
+
+          ### 📦 Installation
+
+          ```bash
+          # Option 1: WAR file
+          cp vulnerable-app-${{ steps.version.outputs.VERSION }}.war /path/to/tomcat/webapps/
+
+          # Option 2: Docker
+          docker load -i vulnerable-web-app-${{ steps.version.outputs.VERSION }}-docker.tar
+          docker run -d -p 8080:8080 vulnerable-web-app:${{ steps.version.outputs.VERSION }}
+          ```
+
+          ### ⚠️ Warning
+
+          **NEVER deploy to production or expose to the Internet!**
+
+          ### 📚 Documentation
+
+          - [README.md](README.md)
+          - [VULNERABILITIES-SUMMARY.md](VULNERABILITIES-SUMMARY.md)
+          - [RELEASE-INSTRUCTIONS.md](RELEASE-INSTRUCTIONS.md)
+
+          ---
+
+          ## 🔒 Checksums (SHA256)
+
+          ```
+          $(cat release/checksums.txt)
+          ```
+
+          ## 📊 Build Information
+
+          - **Build Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          - **Java Version**: 11
+          - **Maven Version**: $(mvn -version | head -n 1)
+          - **Commit**: ${{ github.sha }}
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/vulnerable-app-${{ steps.version.outputs.VERSION }}.war
+            release/vulnerable-web-app-${{ steps.version.outputs.VERSION }}-docker.tar
+            release/checksums.txt
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## ✅ Release v${{ steps.version.outputs.VERSION }} Created Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Artifacts:" >> $GITHUB_STEP_SUMMARY
+          echo "- WAR file: vulnerable-app-${{ steps.version.outputs.VERSION }}.war" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker image: vulnerable-web-app-${{ steps.version.outputs.VERSION }}-docker.tar" >> $GITHUB_STEP_SUMMARY
+          echo "- Checksums: checksums.txt" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 File Sizes:" >> $GITHUB_STEP_SUMMARY
+          ls -lh release/ >> $GITHUB_STEP_SUMMARY
