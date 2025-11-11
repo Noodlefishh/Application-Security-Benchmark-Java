@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Web Vulnérable - Tests de Sécurité</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #d32f2f;
+            border-bottom: 3px solid #d32f2f;
+            padding-bottom: 10px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .vulnerability {
+            background-color: white;
+            border-left: 4px solid #d32f2f;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 3px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .vulnerability h3 {
+            margin-top: 0;
+            color: #d32f2f;
+        }
+        .endpoint {
+            background-color: #e3f2fd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .method {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .get { background-color: #4caf50; color: white; }
+        .post { background-color: #2196f3; color: white; }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚠️ Application Web Vulnérable - Tests de Sécurité</h1>
+
+    <div class="warning">
+        <h2>⚠️ AVERTISSEMENT ⚠️</h2>
+        <p><strong>Cette application contient intentionnellement des vulnérabilités de sécurité.</strong></p>
+        <p>Elle est conçue UNIQUEMENT pour tester des outils de sécurité applicative (SAST, DAST, IAST, SCA).</p>
+        <p><strong>NE JAMAIS DÉPLOYER EN PRODUCTION !</strong></p>
+    </div>
+
+    <h2>Vulnérabilités OWASP Top 10 Implémentées</h2>
+
+    <div class="vulnerability">
+        <h3>A01:2021 - Broken Access Control</h3>
+        <p>Contrôle d'accès défaillant permettant l'accès non autorisé aux données.</p>
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/user/profile/{userId}</code> - Voir n'importe quel profil sans autorisation
+        </div>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A02:2021 - Cryptographic Failures</h3>
+        <p>Données sensibles exposées sans chiffrement approprié.</p>
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/user/admin/export</code> - Export de mots de passe et données sensibles en clair
+        </div>
+        <p>Mots de passe stockés en clair, SSN et numéros de carte de crédit non chiffrés.</p>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A03:2021 - Injection (SQL Injection)</h3>
+        <p>Vulnérabilités d'injection SQL permettant l'exécution de requêtes arbitraires.</p>
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/user/search?username={value}</code> - SQL Injection via paramètre username
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/user/list?sortBy={column}</code> - SQL Injection via ORDER BY
+        </div>
+        <p><strong>Exemple:</strong> <code>?username=' OR '1'='1</code></p>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A03:2021 - Cross-Site Scripting (XSS)</h3>
+        <p>Injection de scripts malveillants dans les pages web.</p>
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/user/comment?username={name}&comment={text}</code> - XSS Reflected
+        </div>
+        <p><strong>Exemple:</strong> <code>?comment=&lt;script&gt;alert('XSS')&lt;/script&gt;</code></p>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A04:2021 - Insecure Design (XXE)</h3>
+        <p>Parser XML non sécurisé permettant l'exploitation XXE.</p>
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <code>/xml/parse</code> - XML External Entity Injection
+        </div>
+        <p><strong>Exemple de payload:</strong></p>
+        <pre><code>&lt;?xml version="1.0"?&gt;
+&lt;!DOCTYPE foo [&lt;!ENTITY xxe SYSTEM "file:///etc/passwd"&gt;]&gt;
+&lt;root&gt;&xxe;&lt;/root&gt;</code></pre>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A05:2021 - Security Misconfiguration</h3>
+        <p>Configuration de sécurité inadéquate.</p>
+        <ul>
+            <li>Cookies sans flags HttpOnly et Secure</li>
+            <li>Pas de headers de sécurité (CSP, HSTS, X-Frame-Options)</li>
+            <li>Upload de fichiers sans restriction de taille</li>
+            <li>Messages d'erreur détaillés</li>
+        </ul>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A06:2021 - Vulnerable and Outdated Components</h3>
+        <p>Utilisation de composants avec des vulnérabilités connues.</p>
+        <ul>
+            <li>Log4j 2.14.1 (CVE-2021-44228 - Log4Shell)</li>
+            <li>Spring Framework 5.2.0</li>
+            <li>Jackson 2.9.8</li>
+            <li>Commons FileUpload 1.3.1</li>
+        </ul>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A07:2021 - Identification and Authentication Failures</h3>
+        <p>Authentification et gestion de session défaillantes.</p>
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <code>/auth/login</code> - Authentification faible
+        </div>
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <code>/auth/register</code> - Inscription sans validation
+        </div>
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <code>/auth/reset-password</code> - Réinitialisation sans vérification
+        </div>
+        <ul>
+            <li>Mots de passe stockés en clair</li>
+            <li>Pas de limite de tentatives de connexion</li>
+            <li>Messages d'erreur informatifs</li>
+            <li>JWT avec clé secrète faible</li>
+        </ul>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A08:2021 - Software and Data Integrity Failures</h3>
+        <p>Désérialisation non sécurisée d'objets Java.</p>
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <code>/deserialize/object</code> - Insecure Deserialization
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/deserialize/serialize-example?message={text}</code> - Créer un objet sérialisé
+        </div>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A09:2021 - Security Logging and Monitoring Failures</h3>
+        <p>Logging et monitoring insuffisants.</p>
+        <ul>
+            <li>Pas de logging des tentatives de connexion</li>
+            <li>Pas de monitoring des activités suspectes</li>
+            <li>Pas d'alertes de sécurité</li>
+            <li>Logs insuffisants pour l'audit</li>
+        </ul>
+    </div>
+
+    <div class="vulnerability">
+        <h3>A10:2021 - Server-Side Request Forgery (Bonus)</h3>
+        <p>Vulnérabilités additionnelles:</p>
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/file/download?filename={path}</code> - Path Traversal
+        </div>
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <code>/file/upload</code> - Unrestricted File Upload
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/file/read?path={path}</code> - Arbitrary File Read
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/file/convert?filename={file}</code> - Command Injection
+        </div>
+    </div>
+
+    <h2>Informations de connexion par défaut</h2>
+    <div class="endpoint">
+        <p><strong>Admin:</strong> username: <code>admin</code> / password: <code>admin123</code></p>
+        <p><strong>Utilisateur:</strong> username: <code>john</code> / password: <code>password</code></p>
+    </div>
+
+    <h2>Outils de test recommandés</h2>
+    <ul>
+        <li><strong>SAST:</strong> SonarQube, Checkmarx, Fortify, Semgrep</li>
+        <li><strong>DAST:</strong> OWASP ZAP, Burp Suite, Acunetix</li>
+        <li><strong>SCA:</strong> OWASP Dependency-Check, Snyk, WhiteSource</li>
+        <li><strong>IAST:</strong> Contrast Security, Seeker</li>
+    </ul>
+
+    <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; text-align: center; color: #666;">
+        <p>Application Vulnérable pour Tests de Sécurité - Ne pas utiliser en production</p>
+    </footer>
+</body>
+</html>

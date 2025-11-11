@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  vulnerable-app:
+    build: .
+    container_name: vulnerable-web-app
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_OPTS=-Xms512m -Xmx1024m
+      # VULNÉRABILITÉ: Variables d'environnement sensibles
+      - DB_PASSWORD=admin123
+      - SECRET_KEY=secret
+      - JWT_SECRET=secret
+    volumes:
+      - ./logs:/usr/local/tomcat/logs
+      - upload-data:/tmp/uploads
+    networks:
+      - vulnerable-network
+    # VULNÉRABILITÉ: Pas de limite de ressources
+    # resources:
+    #   limits:
+    #     cpus: '1'
+    #     memory: 1G
+    restart: unless-stopped
+
+  # Base de données optionnelle (si on veut remplacer H2)
+  # postgres:
+  #   image: postgres:13
+  #   container_name: vulnerable-db
+  #   environment:
+  #     - POSTGRES_USER=admin
+  #     - POSTGRES_PASSWORD=admin123
+  #     - POSTGRES_DB=vulnerabledb
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - vulnerable-network
+
+volumes:
+  upload-data:
+
+networks:
+  vulnerable-network:
+    driver: bridge
